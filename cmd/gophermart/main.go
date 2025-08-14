@@ -43,4 +43,5 @@ func main() {
 	if err = app.Run(); err != nil {
 		log.Fatal("Server error", zap.Error(err))
 	}
+
 }
