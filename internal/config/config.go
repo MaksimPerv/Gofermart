@@ -15,7 +15,7 @@ func Load() *Config {
 	var cfg Config
 
 	flag.StringVar(&cfg.RunAddress, "a", getEnv("RUN_ADDRESS", ":8080"), "Address and port to run server")
-	flag.StringVar(&cfg.DatabaseURI, "d", getEnv("DATABASE_URI", ""), "Database connection address")
+	flag.StringVar(&cfg.DatabaseURI, "d", getEnv("DATABASE_URI", "postgres://localhost:5432/gopher"), "Database connection address")
 	flag.StringVar(&cfg.AccrualSystemAddress, "r", getEnv("ACCRUAL_SYSTEM_ADDRESS", ""), "Accrual system address")
 
 	flag.Parse()

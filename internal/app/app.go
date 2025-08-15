@@ -31,6 +31,8 @@ func (a *App) setupRoutes() {
 	userHandler := controller.NewUserHandler(a.logger, a.userService)
 	authHandler := controller.NewAuthHandler(a.logger, a.authService)
 
+	a.router.Post("/api/user/register", authHandler.Get)
+
 	a.router.Get("/", userHandler.Get)
 	a.router.Get("/123", authHandler.Get)
 }
