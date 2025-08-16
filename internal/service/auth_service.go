@@ -10,7 +10,6 @@ import (
 )
 
 type AuthService interface {
-	Login(ctx context.Context, email, password string) (string, error)
 	Register(ctx context.Context, user *entity.User) error
 	GenerateToken(user *entity.User) (string, error)
 }
@@ -25,10 +24,6 @@ func NewAuthService(repo repository.UserRepository, logger *zap.Logger) AuthServ
 		repo:   repo,
 		logger: logger,
 	}
-}
-
-func (a *authService) Login(ctx context.Context, email, password string) (string, error) {
-	return "nil", nil
 }
 
 func (a *authService) Register(ctx context.Context, user *entity.User) error {
