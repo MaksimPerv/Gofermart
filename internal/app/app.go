@@ -2,7 +2,8 @@ package app
 
 import (
 	"github.com/MaksimPerv/Gofermart/internal/config"
-	"github.com/MaksimPerv/Gofermart/internal/controller"
+	"github.com/MaksimPerv/Gofermart/internal/controller/auth_handler"
+	"github.com/MaksimPerv/Gofermart/internal/controller/user_handler"
 	"github.com/MaksimPerv/Gofermart/internal/service"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -28,13 +29,12 @@ func (a *App) Router() http.Handler {
 }
 
 func (a *App) setupRoutes() {
-	userHandler := controller.NewUserHandler(a.logger, a.userService)
-	authHandler := controller.NewAuthHandler(a.logger, a.authService)
+	userHandler := user_handler.NewUserHandler(a.logger, a.userService)
+	authHandler := auth_handler.NewAuthHandler(a.logger, a.authService)
 
-	a.router.Post("/api/user/register", authHandler.Get)
-
+	a.router.Post("/api/user/register", authHandler.Register)
+	a.router.Post("/api/user/login", authHandler.Login)
 	a.router.Get("/", userHandler.Get)
-	a.router.Get("/123", authHandler.Get)
 }
 
 func (a *App) Run() error {

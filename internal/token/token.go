@@ -37,3 +37,24 @@ func GenerateToken(user *entity.User) (string, error) {
 	}
 	return signedToken, nil
 }
+
+func ValidateToken(tokenString string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, &UnexpectedSigningMethodError{Algorithm: t.Header["alg"]}
+		}
+		jwtSecret, err := getJWTSecret()
+		if err != nil {
+			return "", err
+		}
+		return jwtSecret, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
+	}
+	return nil, errors.New("invalid token")
+}

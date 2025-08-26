@@ -1,4 +1,4 @@
-package controller
+package auth_handler
 
 import (
 	"encoding/json"
@@ -9,18 +9,9 @@ import (
 	"net/http"
 )
 
-type UserHandler struct {
-	logger      *zap.Logger
-	userService service.UserService
-}
-
 type AuthHandler struct {
 	logger      *zap.Logger
 	authService service.AuthService
-}
-
-func NewUserHandler(logger *zap.Logger, userService service.UserService) *UserHandler {
-	return &UserHandler{logger: logger, userService: userService}
 }
 
 func NewAuthHandler(logger *zap.Logger, AuthService service.AuthService) *AuthHandler {
@@ -76,9 +67,52 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("User registered and authenticated"))
 }
 
-func (u *UserHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != "application/json" {
+		http.Error(w, "Content-Type must be application/json", http.StatusBadRequest)
+		return
+	}
 
-}
-func (a *AuthHandler) Get(w http.ResponseWriter, r *http.Request) {
+	var user entity.User
 
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		a.logger.Error("Invalid JSON", zap.Error(err))
+		http.Error(w, "Invalid request format", http.StatusBadRequest)
+		return
+	}
+	if user.Login == "" || user.Password == "" {
+		http.Error(w, "Login and password are required", http.StatusBadRequest)
+		return
+	}
+
+	if err := a.authService.Login(r.Context(), &user); err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidCredentials):
+			http.Error(w, "Invalid login or password", http.StatusUnauthorized)
+		default:
+			a.logger.Error("Service error in login", zap.Error(err))
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	token, err := a.authService.GenerateToken(&user)
+	if err != nil {
+		a.logger.Error("Token generation failed", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:        "token",
+		Value:       token,
+		Path:        "/",
+		HttpOnly:    true,
+		Partitioned: false,
+		Raw:         "",
+		Unparsed:    nil,
+	})
+	a.logger.Info("Login successful", zap.String("username", user.Login))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("User successfully authenticated"))
 }

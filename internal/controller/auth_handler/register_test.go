@@ -1,10 +1,11 @@
-package controller
+package auth_handler
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/MaksimPerv/Gofermart/internal/entity"
+	"github.com/MaksimPerv/Gofermart/internal/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
@@ -24,6 +25,12 @@ func (m *MockAuthService) Register(ctx context.Context, user *entity.User) error
 func (m *MockAuthService) GenerateToken(user *entity.User) (string, error) {
 	args := m.Called(user)
 	return args.String(0), args.Error(1)
+}
+func (m *MockAuthService) Login(ctx context.Context, user *entity.User) error {
+	return nil
+}
+func (m *MockAuthService) ValidateToken(tokenString string) (*token.Claims, error) {
+	return nil, nil
 }
 
 func TestAuthHandler_Register(t *testing.T) {

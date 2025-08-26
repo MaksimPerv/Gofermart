@@ -9,7 +9,6 @@ import (
 )
 
 type UserRepository interface {
-	GetByID(ctx context.Context, id string) (*entity.User, error)
 	GetByUser(ctx context.Context, login string) (*entity.User, error)
 	CreateUser(ctx context.Context, user *entity.User) error
 }
@@ -26,9 +25,6 @@ func NewPostgresUserRepository(db *pgxpool.Pool, logger *zap.Logger) UserReposit
 	}
 }
 
-func (postgre *postgresUserRepository) GetByID(ctx context.Context, id string) (*entity.User, error) {
-	return nil, nil
-}
 func (postgre *postgresUserRepository) GetByUser(ctx context.Context, login string) (*entity.User, error) {
 	var user entity.User
 	err := postgre.db.QueryRow(ctx, "SELECT login,password FROM users WHERE login=$1;", login).Scan(&user.Login, &user.Password)

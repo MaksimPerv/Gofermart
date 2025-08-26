@@ -12,6 +12,8 @@ import (
 type AuthService interface {
 	Register(ctx context.Context, user *entity.User) error
 	GenerateToken(user *entity.User) (string, error)
+	Login(ctx context.Context, user *entity.User) error
+	ValidateToken(tokenString string) (*token.Claims, error)
 }
 
 type authService struct {
@@ -41,4 +43,23 @@ func (a *authService) Register(ctx context.Context, user *entity.User) error {
 
 func (a *authService) GenerateToken(user *entity.User) (string, error) {
 	return token.GenerateToken(user)
+}
+func (a *authService) Login(ctx context.Context, user *entity.User) error {
+	consumer, err := a.repo.GetByUser(ctx, user.Login)
+	if err != nil {
+		a.logger.Error("Failed to get user from database", zap.String("username", user.Login), zap.Error(err))
+		return err
+	}
+	if consumer == nil {
+		return ErrInvalidCredentials
+	}
+
+	if err = bcrypt.CompareHashAndPassword([]byte(consumer.Password), []byte(user.Password)); err != nil {
+		return ErrInvalidCredentials
+	}
+	return nil
+}
+
+func (a *authService) ValidateToken(tokenString string) (*token.Claims, error) {
+	return token.ValidateToken(tokenString)
 }
