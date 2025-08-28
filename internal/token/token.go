@@ -16,7 +16,7 @@ func getJWTSecret() ([]byte, error) {
 	return []byte(secret), nil
 }
 
-func GenerateToken(user *entity.User) (string, error) {
+func GenerateToken(user *entity.User, id *int) (string, error) {
 	jwtSecret, err := getJWTSecret()
 	if err != nil {
 		return "", err
@@ -24,6 +24,7 @@ func GenerateToken(user *entity.User) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 
 	claims := Claims{
+		UserID:   *id,
 		Username: user.Login,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),

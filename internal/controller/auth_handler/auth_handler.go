@@ -7,6 +7,7 @@ import (
 	"github.com/MaksimPerv/Gofermart/internal/service"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 type AuthHandler struct {
@@ -25,6 +26,7 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req entity.User
+	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		a.logger.Error("Invalid JSON", zap.Error(err))
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
@@ -35,8 +37,8 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Login and password are required", http.StatusBadRequest)
 		return
 	}
-
-	if err := a.authService.Register(r.Context(), &req); err != nil {
+	userId, err := a.authService.Register(r.Context(), &req)
+	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrUserExists):
 			http.Error(w, "Login already taken", http.StatusConflict)
@@ -46,7 +48,7 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	token, err := a.authService.GenerateToken(&req)
+	token, err := a.authService.GenerateToken(&req, &userId)
 	if err != nil {
 		a.logger.Error("Token generation failed", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -54,13 +56,13 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:        "token",
-		Value:       token,
-		Path:        "/",
-		HttpOnly:    true,
-		Partitioned: false,
-		Raw:         "",
-		Unparsed:    nil,
+		Name:     "token",
+		Value:    token,
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	w.WriteHeader(http.StatusOK)
@@ -74,7 +76,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user entity.User
-
+	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		a.logger.Error("Invalid JSON", zap.Error(err))
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
@@ -84,8 +86,8 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Login and password are required", http.StatusBadRequest)
 		return
 	}
-
-	if err := a.authService.Login(r.Context(), &user); err != nil {
+	userId, err := a.authService.Login(r.Context(), &user)
+	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrInvalidCredentials):
 			http.Error(w, "Invalid login or password", http.StatusUnauthorized)
@@ -96,7 +98,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := a.authService.GenerateToken(&user)
+	token, err := a.authService.GenerateToken(&user, &userId)
 	if err != nil {
 		a.logger.Error("Token generation failed", zap.Error(err))
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -104,14 +106,15 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:        "token",
-		Value:       token,
-		Path:        "/",
-		HttpOnly:    true,
-		Partitioned: false,
-		Raw:         "",
-		Unparsed:    nil,
+		Name:     "token",
+		Value:    token,
+		Path:     "/",
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
 	})
+
 	a.logger.Info("Login successful", zap.String("username", user.Login))
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("User successfully authenticated"))

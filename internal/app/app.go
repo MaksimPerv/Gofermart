@@ -3,7 +3,9 @@ package app
 import (
 	"github.com/MaksimPerv/Gofermart/internal/config"
 	"github.com/MaksimPerv/Gofermart/internal/controller/auth_handler"
+	"github.com/MaksimPerv/Gofermart/internal/controller/order_handler"
 	"github.com/MaksimPerv/Gofermart/internal/controller/user_handler"
+	"github.com/MaksimPerv/Gofermart/internal/middleware"
 	"github.com/MaksimPerv/Gofermart/internal/service"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -11,16 +13,17 @@ import (
 )
 
 type App struct {
-	cfg         *config.Config
-	router      *chi.Mux
-	logger      *zap.Logger
-	userService service.UserService
-	authService service.AuthService
+	cfg          *config.Config
+	router       *chi.Mux
+	logger       *zap.Logger
+	userService  service.UserService
+	authService  service.AuthService
+	orderService service.OrderService
 }
 
-func New(cfg *config.Config, logger *zap.Logger, userService service.UserService, authService service.AuthService) *App {
+func New(cfg *config.Config, logger *zap.Logger, userService service.UserService, authService service.AuthService, orderService service.OrderService) *App {
 	r := chi.NewRouter()
-	return &App{cfg: cfg, router: r, logger: logger, userService: userService, authService: authService}
+	return &App{cfg: cfg, router: r, logger: logger, userService: userService, authService: authService, orderService: orderService}
 
 }
 
@@ -31,9 +34,20 @@ func (a *App) Router() http.Handler {
 func (a *App) setupRoutes() {
 	userHandler := user_handler.NewUserHandler(a.logger, a.userService)
 	authHandler := auth_handler.NewAuthHandler(a.logger, a.authService)
+	orderHandler := order_handler.NewOrderHandler(a.logger, a.orderService)
 
-	a.router.Post("/api/user/register", authHandler.Register)
-	a.router.Post("/api/user/login", authHandler.Login)
+	a.router.Group(func(r chi.Router) {
+		r.Post("/api/user/register", authHandler.Register)
+		r.Post("/api/user/login", authHandler.Login)
+	})
+
+	a.router.Group(func(r chi.Router) {
+		r.Use(middleware.AuthMiddleware(a.authService))
+
+		r.Post("/api/user/orders", orderHandler.CreateOrder)
+
+	})
+
 	a.router.Get("/", userHandler.Get)
 }
 

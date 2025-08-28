@@ -10,9 +10,9 @@ import (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, user *entity.User) error
-	GenerateToken(user *entity.User) (string, error)
-	Login(ctx context.Context, user *entity.User) error
+	Register(ctx context.Context, user *entity.User) (int, error)
+	GenerateToken(user *entity.User, id *int) (string, error)
+	Login(ctx context.Context, user *entity.User) (int, error)
 	ValidateToken(tokenString string) (*token.Claims, error)
 }
 
@@ -28,36 +28,36 @@ func NewAuthService(repo repository.UserRepository, logger *zap.Logger) AuthServ
 	}
 }
 
-func (a *authService) Register(ctx context.Context, user *entity.User) error {
+func (a *authService) Register(ctx context.Context, user *entity.User) (int, error) {
 	if _, err := a.repo.GetByUser(ctx, user.Login); err == nil {
-		return ErrUserExists
+		return 0, ErrUserExists
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	user.Password = string(hashedPassword)
 	return a.repo.CreateUser(ctx, user)
 }
 
-func (a *authService) GenerateToken(user *entity.User) (string, error) {
-	return token.GenerateToken(user)
+func (a *authService) GenerateToken(user *entity.User, id *int) (string, error) {
+	return token.GenerateToken(user, id)
 }
-func (a *authService) Login(ctx context.Context, user *entity.User) error {
+func (a *authService) Login(ctx context.Context, user *entity.User) (int, error) {
 	consumer, err := a.repo.GetByUser(ctx, user.Login)
 	if err != nil {
 		a.logger.Error("Failed to get user from database", zap.String("username", user.Login), zap.Error(err))
-		return err
+		return 0, err
 	}
 	if consumer == nil {
-		return ErrInvalidCredentials
+		return 0, ErrInvalidCredentials
 	}
 
 	if err = bcrypt.CompareHashAndPassword([]byte(consumer.Password), []byte(user.Password)); err != nil {
-		return ErrInvalidCredentials
+		return 0, ErrInvalidCredentials
 	}
-	return nil
+	return consumer.Id, nil
 }
 
 func (a *authService) ValidateToken(tokenString string) (*token.Claims, error) {

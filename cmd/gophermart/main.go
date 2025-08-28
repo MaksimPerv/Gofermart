@@ -41,9 +41,10 @@ func main() {
 	}
 
 	userRepo := repository.NewPostgresUserRepository(db, log)
+	orderService := service.NewOrderService(userRepo, log)
 	userService := service.NewUserService(userRepo, log)
 	authService := service.NewAuthService(userRepo, log)
-	app := app.New(cfg, log, userService, authService)
+	app := app.New(cfg, log, userService, authService, orderService)
 
 	if err = app.Run(); err != nil {
 		log.Fatal("Server error", zap.Error(err))
