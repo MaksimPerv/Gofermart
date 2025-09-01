@@ -41,7 +41,8 @@ func main() {
 	}
 
 	userRepo := repository.NewPostgresUserRepository(db, log)
-	orderService := service.NewOrderService(userRepo, log)
+	orderRepo := repository.NewPostgresOrderRepository(db, log)
+	orderService := service.NewOrderService(orderRepo, log)
 	userService := service.NewUserService(userRepo, log)
 	authService := service.NewAuthService(userRepo, log)
 	app := app.New(cfg, log, userService, authService, orderService)

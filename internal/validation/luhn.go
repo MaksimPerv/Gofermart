@@ -4,13 +4,15 @@ import "strconv"
 
 func ValidateLuhn(number string) bool {
 	sum := 0
-	isSecond := true
-	for i := 0; i < len(number); i++ {
+	isSecond := false
+
+	for i := len(number) - 1; i >= 0; i-- {
 		digit, err := strconv.Atoi(string(number[i]))
 		if err != nil {
 			return false
 		}
-		if !isSecond {
+
+		if isSecond {
 			digit *= 2
 			if digit > 9 {
 				digit -= 9
@@ -19,5 +21,6 @@ func ValidateLuhn(number string) bool {
 		sum += digit
 		isSecond = !isSecond
 	}
-	return sum&10 == 0
+
+	return sum%10 == 0
 }

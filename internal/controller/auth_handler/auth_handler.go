@@ -64,7 +64,7 @@ func (a *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
-
+	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("User registered and authenticated"))
 }
@@ -116,6 +116,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	a.logger.Info("Login successful", zap.String("username", user.Login))
+	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("User successfully authenticated"))
 }

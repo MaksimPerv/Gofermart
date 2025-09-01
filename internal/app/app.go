@@ -45,6 +45,7 @@ func (a *App) setupRoutes() {
 		r.Use(middleware.AuthMiddleware(a.authService))
 
 		r.Post("/api/user/orders", orderHandler.CreateOrder)
+		r.Get("/api/user/orders", orderHandler.GetOrders)
 
 	})
 

@@ -10,6 +10,7 @@ import (
 func AuthMiddleware(a service.AuthService) func(handler http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 			cookie, err := r.Cookie("token")
 			if err != nil {
 				http.Error(w, "Authentication required", http.StatusUnauthorized)
@@ -31,7 +32,7 @@ func AuthMiddleware(a service.AuthService) func(handler http.Handler) http.Handl
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 				return
 			}
-			ctx := context.WithValue(r.Context(), "userClaims", claims)
+			ctx := context.WithValue(r.Context(), "userID", claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
