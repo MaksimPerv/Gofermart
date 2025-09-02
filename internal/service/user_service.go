@@ -8,7 +8,7 @@ import (
 )
 
 type UserService interface {
-	Get(ctx context.Context, id string) (*entity.User, error)
+	GetBalance(ctx context.Context, id int) (*entity.UserBalance, error)
 }
 
 type userService struct {
@@ -23,6 +23,6 @@ func NewUserService(repo repository.UserRepository, logger *zap.Logger) UserServ
 	}
 }
 
-func (u *userService) Get(ctx context.Context, id string) (*entity.User, error) {
-	return nil, nil
+func (u *userService) GetBalance(ctx context.Context, id int) (*entity.UserBalance, error) {
+	return u.repo.GetBalance(ctx, id)
 }

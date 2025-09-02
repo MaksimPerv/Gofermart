@@ -46,10 +46,9 @@ func (a *App) setupRoutes() {
 
 		r.Post("/api/user/orders", orderHandler.CreateOrder)
 		r.Get("/api/user/orders", orderHandler.GetOrders)
+		r.Get("/api/user/balance", userHandler.GetBalance)
 
 	})
-
-	a.router.Get("/", userHandler.Get)
 }
 
 func (a *App) Run() error {

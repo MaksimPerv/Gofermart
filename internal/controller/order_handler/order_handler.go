@@ -1,6 +1,8 @@
 package order_handler
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"github.com/MaksimPerv/Gofermart/internal/service"
 	"github.com/MaksimPerv/Gofermart/internal/validation"
@@ -101,5 +103,32 @@ func (o *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "User not authenticated", http.StatusUnauthorized)
 		return
 	}
-
+	users, err := o.orderService.GetOrders(context.Background(), userId)
+	if err != nil {
+		o.logger.Error("Error get orders", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if users == nil {
+		o.logger.Info("No information to answer",
+			zap.Int("user", userId))
+		w.WriteHeader(http.StatusNoContent)
+		w.Write([]byte("No information to answer"))
+	}
+	usersJSON, err := json.MarshalIndent(users, "", "  ")
+	if err != nil {
+		o.logger.Error("Failed to marshal users to JSON",
+			zap.Int("user_id", userId),
+			zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(usersJSON)
+	if err != nil {
+		o.logger.Error("Failed to write JSON response",
+			zap.Int("user_id", userId),
+			zap.Error(err),
+		)
+	}
 }

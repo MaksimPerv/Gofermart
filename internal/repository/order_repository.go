@@ -12,6 +12,7 @@ import (
 type OrderRepository interface {
 	CreateOrder(context.Context, string, int) (bool, error)
 	GetID(ctx context.Context, number string) (int, error)
+	GetOrders(context.Context, int) ([]entity.DBUser, error)
 }
 type postgresOrderRepository struct {
 	db     *pgxpool.Pool
@@ -50,5 +51,28 @@ func (o *postgresOrderRepository) GetID(ctx context.Context, number string) (int
 }
 
 func (p *postgresOrderRepository) GetOrders(ctx context.Context, userId int) ([]entity.DBUser, error) {
-	return nil, nil
+	rows, err := p.db.Query(ctx, "SELECT od.number,os.name,od.accrual,od.created_at FROM orders od JOIN order_statuses os on os.id= od.status_id WHERE od.user_id=$1 ORDER BY od.created_at", userId)
+	if err != nil {
+		p.logger.Error("Request execution error", zap.Error(err))
+		return nil, err
+	}
+	defer rows.Close()
+	var users []entity.DBUser
+
+	for rows.Next() {
+		var user entity.DBUser
+		if err = rows.Scan(&user.Number, &user.Status, &user.Accrual, &user.UploadedAt); err != nil {
+			p.logger.Error("Line scan error", zap.Error(err))
+			return nil, err
+		}
+		if *user.Accrual == 0 {
+			user.Accrual = nil
+		}
+		users = append(users, user)
+	}
+	if err = rows.Err(); err != nil {
+		p.logger.Error("Error while iterating over rows", zap.Error(err))
+		return nil, err
+	}
+	return users, nil
 }
