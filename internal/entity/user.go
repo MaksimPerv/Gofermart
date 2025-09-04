@@ -1,6 +1,9 @@
 package entity
 
-import "time"
+import (
+	"github.com/shopspring/decimal"
+	"time"
+)
 
 type User struct {
 	Login    string `json:"login"`
@@ -14,13 +17,18 @@ type UserWithId struct {
 }
 
 type DBUser struct {
-	Number     string    `json:"number"`
-	Status     string    `json:"status"`
-	Accrual    *float64  `json:"accrual,omitempty"`
-	UploadedAt time.Time `json:"uploaded_at"`
+	Number     string           `json:"number"`
+	Status     string           `json:"status"`
+	Accrual    *decimal.Decimal `json:"accrual,omitempty"`
+	UploadedAt time.Time        `json:"uploaded_at"`
 }
 
 type UserBalance struct {
-	Current   float64 `json:"current"`
-	Withdrawn float64 `json:"withdrawn"`
+	Current   decimal.Decimal `json:"current"`
+	Withdrawn decimal.Decimal `json:"withdrawn"`
+}
+
+type WithdrawRequest struct {
+	Order string          `json:"order"`
+	Sum   decimal.Decimal `json:"sum"`
 }

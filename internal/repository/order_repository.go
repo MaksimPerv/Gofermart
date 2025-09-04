@@ -65,7 +65,7 @@ func (p *postgresOrderRepository) GetOrders(ctx context.Context, userId int) ([]
 			p.logger.Error("Line scan error", zap.Error(err))
 			return nil, err
 		}
-		if *user.Accrual == 0 {
+		if user.Accrual.IsZero() {
 			user.Accrual = nil
 		}
 		users = append(users, user)

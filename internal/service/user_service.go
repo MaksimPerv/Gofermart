@@ -4,11 +4,13 @@ import (
 	"context"
 	"github.com/MaksimPerv/Gofermart/internal/entity"
 	"github.com/MaksimPerv/Gofermart/internal/repository"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
 type UserService interface {
 	GetBalance(ctx context.Context, id int) (*entity.UserBalance, error)
+	WithdrawRequest(ctx context.Context, sum decimal.Decimal, userId int) error
 }
 
 type userService struct {
@@ -25,4 +27,8 @@ func NewUserService(repo repository.UserRepository, logger *zap.Logger) UserServ
 
 func (u *userService) GetBalance(ctx context.Context, id int) (*entity.UserBalance, error) {
 	return u.repo.GetBalance(ctx, id)
+}
+
+func (u *userService) WithdrawRequest(ctx context.Context, sum decimal.Decimal, userId int) error {
+	return u.repo.ProcessWithdrawal(ctx, sum, userId)
 }
