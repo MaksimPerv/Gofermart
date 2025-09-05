@@ -16,7 +16,7 @@ type UserWithId struct {
 	Password string
 }
 
-type DBUser struct {
+type DBOrder struct {
 	Number     string           `json:"number"`
 	Status     string           `json:"status"`
 	Accrual    *decimal.Decimal `json:"accrual,omitempty"`
@@ -31,4 +31,10 @@ type UserBalance struct {
 type WithdrawRequest struct {
 	Order string          `json:"order"`
 	Sum   decimal.Decimal `json:"sum"`
+}
+
+type GetWithdrawRequest struct {
+	Order       string          `json:"order"`
+	Sum         decimal.Decimal `json:"sum"`
+	ProcessedAt time.Time       `json:"processed_at"`
 }

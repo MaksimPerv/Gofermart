@@ -9,7 +9,7 @@ import (
 
 type OrderService interface {
 	CreateOrder(context.Context, string, int) error
-	GetOrders(context.Context, int) ([]entity.DBUser, error)
+	GetOrders(context.Context, int) ([]entity.DBOrder, error)
 }
 
 type orderService struct {
@@ -69,6 +69,6 @@ func (o *orderService) CreateOrder(ctx context.Context, number string, userID in
 
 }
 
-func (o *orderService) GetOrders(ctx context.Context, userId int) ([]entity.DBUser, error) {
+func (o *orderService) GetOrders(ctx context.Context, userId int) ([]entity.DBOrder, error) {
 	return o.repo.GetOrders(ctx, userId)
 }

@@ -10,7 +10,8 @@ import (
 
 type UserService interface {
 	GetBalance(ctx context.Context, id int) (*entity.UserBalance, error)
-	WithdrawRequest(ctx context.Context, sum decimal.Decimal, userId int) error
+	WithdrawRequest(ctx context.Context, sum decimal.Decimal, userId int, order string) error
+	GetWithdrawals(ctx context.Context, userId int) ([]entity.GetWithdrawRequest, error)
 }
 
 type userService struct {
@@ -29,6 +30,10 @@ func (u *userService) GetBalance(ctx context.Context, id int) (*entity.UserBalan
 	return u.repo.GetBalance(ctx, id)
 }
 
-func (u *userService) WithdrawRequest(ctx context.Context, sum decimal.Decimal, userId int) error {
-	return u.repo.ProcessWithdrawal(ctx, sum, userId)
+func (u *userService) WithdrawRequest(ctx context.Context, sum decimal.Decimal, userId int, order string) error {
+	return u.repo.ProcessWithdrawal(ctx, sum, userId, order)
+}
+
+func (u *userService) GetWithdrawals(ctx context.Context, userId int) ([]entity.GetWithdrawRequest, error) {
+	return u.repo.GetWithdrawals(ctx, userId)
 }

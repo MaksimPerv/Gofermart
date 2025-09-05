@@ -48,6 +48,7 @@ func (a *App) setupRoutes() {
 		r.Get("/api/user/orders", orderHandler.GetOrders)
 		r.Get("/api/user/balance", userHandler.GetBalance)
 		r.Post("/api/user/balance/withdraw", userHandler.WithdrawalRequest)
+		r.Get("/api/user/withdrawals", userHandler.GetWithdrawals)
 
 	})
 }

@@ -114,6 +114,7 @@ func (o *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 			zap.Int("user", userId))
 		w.WriteHeader(http.StatusNoContent)
 		w.Write([]byte("No information to answer"))
+		return
 	}
 	usersJSON, err := json.MarshalIndent(users, "", "  ")
 	if err != nil {

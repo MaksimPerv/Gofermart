@@ -6,13 +6,16 @@ import (
 	"github.com/MaksimPerv/Gofermart/internal/entity"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
 type OrderRepository interface {
 	CreateOrder(context.Context, string, int) (bool, error)
 	GetID(ctx context.Context, number string) (int, error)
-	GetOrders(context.Context, int) ([]entity.DBUser, error)
+	GetOrders(context.Context, int) ([]entity.DBOrder, error)
+	GetOrdersStatus(ctx context.Context) ([]string, error)
+	UpdateOrderStatus(ctx context.Context, number string, status string, accrual decimal.Decimal) error
 }
 type postgresOrderRepository struct {
 	db     *pgxpool.Pool
@@ -50,17 +53,17 @@ func (o *postgresOrderRepository) GetID(ctx context.Context, number string) (int
 	return id, nil
 }
 
-func (p *postgresOrderRepository) GetOrders(ctx context.Context, userId int) ([]entity.DBUser, error) {
+func (p *postgresOrderRepository) GetOrders(ctx context.Context, userId int) ([]entity.DBOrder, error) {
 	rows, err := p.db.Query(ctx, "SELECT od.number,os.name,od.accrual,od.created_at FROM orders od JOIN order_statuses os on os.id= od.status_id WHERE od.user_id=$1 ORDER BY od.created_at", userId)
 	if err != nil {
 		p.logger.Error("Request execution error", zap.Error(err))
 		return nil, err
 	}
 	defer rows.Close()
-	var users []entity.DBUser
+	var users []entity.DBOrder
 
 	for rows.Next() {
-		var user entity.DBUser
+		var user entity.DBOrder
 		if err = rows.Scan(&user.Number, &user.Status, &user.Accrual, &user.UploadedAt); err != nil {
 			p.logger.Error("Line scan error", zap.Error(err))
 			return nil, err
@@ -75,4 +78,51 @@ func (p *postgresOrderRepository) GetOrders(ctx context.Context, userId int) ([]
 		return nil, err
 	}
 	return users, nil
+}
+
+func (p *postgresOrderRepository) GetOrdersStatus(ctx context.Context) ([]string, error) {
+	var orders []string
+
+	rows, err := p.db.Query(ctx, "SELECT number FROM orders WHERE status_id<3")
+	if err != nil {
+		p.logger.Error("error select numbers",
+			zap.Error(err))
+		return nil, err
+	}
+
+	for rows.Next() {
+		var num string
+		if err = rows.Scan(&num); err != nil {
+			p.logger.Error("Line scan error", zap.Error(err))
+			return nil, err
+		}
+		orders = append(orders, num)
+	}
+	if err = rows.Err(); err != nil {
+		p.logger.Error("Error while iterating over rows", zap.Error(err))
+		return nil, err
+	}
+	return orders, nil
+}
+
+func (p *postgresOrderRepository) UpdateOrderStatus(ctx context.Context, number string, status string, accrual decimal.Decimal) error {
+	tx, err := p.db.Begin(ctx)
+
+	if err != nil {
+		p.logger.Error("error start transaction", zap.Error(err))
+		return err
+	}
+	defer tx.Rollback(ctx)
+	_, err = tx.Exec(ctx, "UPDATE orders SET status_id=(SELECT id FROM order_statuses WHERE name=$1 ),accrual=$2 WHERE number=$3", status, accrual, number)
+	if err != nil {
+		p.logger.Error("Error update orders", zap.Error(err))
+		return err
+	}
+	_, err = tx.Exec(ctx, "UPDATE balance SET current=current+$1 WHERE user_id=(SELECT user_id FROM orders WHERE number=$2)", accrual, number)
+	if err != nil {
+		p.logger.Error("Error update balance", zap.Error(err))
+		return err
+	}
+	tx.Commit(ctx)
+	return nil
 }

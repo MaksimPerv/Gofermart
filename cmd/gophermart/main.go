@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/MaksimPerv/Gofermart/internal/app"
+	"github.com/MaksimPerv/Gofermart/internal/client/loyalty"
 	"github.com/MaksimPerv/Gofermart/internal/config"
 	"github.com/MaksimPerv/Gofermart/internal/database"
 	"github.com/MaksimPerv/Gofermart/internal/repository"
@@ -10,6 +11,7 @@ import (
 	"github.com/MaksimPerv/Gofermart/pkg/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
+	"time"
 )
 
 func main() {
@@ -46,6 +48,12 @@ func main() {
 	userService := service.NewUserService(userRepo, log)
 	authService := service.NewAuthService(userRepo, log)
 	app := app.New(cfg, log, userService, authService, orderService)
+
+	loyaltyClient := loyalty.NewClient("http://localhost:8080")
+
+	workerService := service.NewWorkerService(orderRepo, loyaltyClient, log, 10*time.Second, 5)
+
+	go workerService.Start(context.Background())
 
 	if err = app.Run(); err != nil {
 		log.Fatal("Server error", zap.Error(err))

@@ -14,7 +14,8 @@ type UserRepository interface {
 	GetByUser(ctx context.Context, login string) (*entity.UserWithId, error)
 	CreateUser(ctx context.Context, user *entity.User) (int, error)
 	GetBalance(context.Context, int) (*entity.UserBalance, error)
-	ProcessWithdrawal(ctx context.Context, amount decimal.Decimal, userID int) error
+	ProcessWithdrawal(ctx context.Context, amount decimal.Decimal, userID int, order string) error
+	GetWithdrawals(ctx context.Context, userID int) ([]entity.GetWithdrawRequest, error)
 }
 
 type postgresUserRepository struct {
@@ -54,7 +55,7 @@ func (p *postgresUserRepository) GetBalance(ctx context.Context, userId int) (*e
 	}
 	return &userBalance, nil
 }
-func (p *postgresUserRepository) ProcessWithdrawal(ctx context.Context, amount decimal.Decimal, userID int) error {
+func (p *postgresUserRepository) ProcessWithdrawal(ctx context.Context, amount decimal.Decimal, userID int, order string) error {
 	tx, err := p.db.Begin(ctx)
 	defer tx.Rollback(ctx)
 	if err != nil {
@@ -82,5 +83,40 @@ func (p *postgresUserRepository) ProcessWithdrawal(ctx context.Context, amount d
 			zap.Error(err))
 		return err
 	}
+
+	_, err = tx.Exec(ctx, "INSERT INTO history_withdrawal(user_id,number,sum) VALUES($1,$2,$3)", userID, order, amount)
+	if err != nil {
+		p.logger.Error("Error update history_withdrawal",
+			zap.Int("user_id", userID),
+			zap.Error(err))
+		return err
+	}
 	return tx.Commit(ctx)
+}
+
+func (p *postgresUserRepository) GetWithdrawals(ctx context.Context, userID int) ([]entity.GetWithdrawRequest, error) {
+	var withdrawal []entity.GetWithdrawRequest
+	rows, err := p.db.Query(ctx, "SELECT number,sum,processed_at FROM history_withdrawal WHERE user_id=$1 ORDER BY processed_at ASC", userID)
+	if err != nil {
+		p.logger.Error("Error select history withdrawal",
+			zap.Int("user_id", userID),
+			zap.Error(err))
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var req entity.GetWithdrawRequest
+
+		if err = rows.Scan(&req.Order, &req.Sum, &req.ProcessedAt); err != nil {
+			p.logger.Error("Line scan error", zap.Error(err))
+			return nil, err
+		}
+
+		withdrawal = append(withdrawal, req)
+	}
+	if err = rows.Err(); err != nil {
+		p.logger.Error("Error while iterating over rows", zap.Error(err))
+		return nil, err
+	}
+	return withdrawal, nil
 }
